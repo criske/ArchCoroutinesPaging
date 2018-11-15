@@ -1,5 +1,5 @@
 @file:Suppress("unused", "MemberVisibilityCanBePrivate")
-package com.crskdev.arch.couroutines.paging
+package com.crskdev.arch.coroutines.paging
 
 import android.annotation.SuppressLint
 import androidx.arch.core.executor.ArchTaskExecutor
