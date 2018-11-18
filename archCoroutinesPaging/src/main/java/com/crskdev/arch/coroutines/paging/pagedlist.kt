@@ -1,4 +1,5 @@
 @file:Suppress("unused", "MemberVisibilityCanBePrivate")
+
 package com.crskdev.arch.coroutines.paging
 
 import android.annotation.SuppressLint
@@ -7,8 +8,10 @@ import androidx.paging.DataSource
 import androidx.paging.PagedList
 import androidx.paging.PagedList.Config.MAX_SIZE_UNBOUNDED
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 
 /**
  * Created by Cristian Pela on 14.11.2018.
@@ -38,7 +41,7 @@ fun <Key, Value> DataSource.Factory<Key, Value>.setupPagedListBuilder(pageSize: 
 @Suppress("UNCHECKED_CAST")
 @ExperimentalCoroutinesApi
 @ObsoleteCoroutinesApi
-suspend fun <Key, Value> ReadyPagedListBuilder<Key, Value>.onPaging(consumer: (PagedList<Value>) -> Unit) =
+suspend fun <Key, Value> ReadyPagedListBuilder<Key, Value>.onPaging(parent: Job? = null, consumer: (PagedList<Value>) -> Unit): Detachable<Value> =
     coroutineScope {
         val parentContext = coroutineContext
 
@@ -69,7 +72,17 @@ suspend fun <Key, Value> ReadyPagedListBuilder<Key, Value>.onPaging(consumer: (P
             lastPage = this
             lastPage?.dataSource?.addInvalidatedCallback(invalidatedCallback)
         })
+
+        return@coroutineScope Detachable(lastPage, sendChannel)
     }
+
+class Detachable<T>(internal var pagedList: PagedList<T>?, val channel: SendChannel<PagedList<T>>) {
+
+    fun detach() {
+        pagedList?.detach()
+        channel.close()
+    }
+}
 
 @SuppressLint("RestrictedApi")
 internal fun <Key, Value> ReadyPagedListBuilder<Key, Value>.build(coroutineContext: CoroutineContext):
