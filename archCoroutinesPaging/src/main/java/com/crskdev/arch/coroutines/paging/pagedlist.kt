@@ -41,7 +41,7 @@ fun <Key, Value> DataSource.Factory<Key, Value>.setupPagedListBuilder(pageSize: 
 @Suppress("UNCHECKED_CAST")
 @ExperimentalCoroutinesApi
 @ObsoleteCoroutinesApi
-suspend fun <Key, Value> ReadyPagedListBuilder<Key, Value>.onPaging(parent: Job? = null, consumer: (PagedList<Value>) -> Unit): Detachable<Value> =
+suspend fun <Key, Value> ReadyPagedListBuilder<Key, Value>.onPaging(consumer: (PagedList<Value>) -> Unit): Detachable<Value> =
     coroutineScope {
         val parentContext = coroutineContext
 
