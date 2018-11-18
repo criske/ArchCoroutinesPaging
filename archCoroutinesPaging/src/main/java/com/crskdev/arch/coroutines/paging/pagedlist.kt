@@ -76,7 +76,7 @@ suspend fun <Key, Value> ReadyPagedListBuilder<Key, Value>.onPaging(consumer: (P
         return@coroutineScope Detachable(lastPage, sendChannel)
     }
 
-class Detachable<T>(internal var pagedList: PagedList<T>?, val channel: SendChannel<PagedList<T>>) {
+class Detachable<T>(internal var pagedList: PagedList<T>?, internal val channel: SendChannel<PagedList<T>>) {
 
     fun detach() {
         pagedList?.detach()
