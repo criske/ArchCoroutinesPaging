@@ -8,10 +8,8 @@ import androidx.paging.DataSource
 import androidx.paging.PagedList
 import androidx.paging.PagedList.Config.MAX_SIZE_UNBOUNDED
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
 import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.EmptyCoroutineContext
 
 /**
  * Created by Cristian Pela on 14.11.2018.
@@ -38,16 +36,23 @@ fun <Key, Value> DataSource.Factory<Key, Value>.setupPagedListBuilder(pageSize: 
         fetchDispatcher = Dispatchers.Default
     }
 
+
 @Suppress("UNCHECKED_CAST")
 @ExperimentalCoroutinesApi
 @ObsoleteCoroutinesApi
-suspend fun <Key, Value> ReadyPagedListBuilder<Key, Value>.onPaging(consumer: (PagedList<Value>) -> Unit): Detachable<Value> =
+suspend fun <Key, Value> ReadyPagedListBuilder<Key, Value>.onPaging(job: Job? = null, consumer: (PagedList<Value>, Detachable) -> Unit) =
     coroutineScope {
         val parentContext = coroutineContext
 
-        val sendChannel = actor<PagedList<Value>> {
+        val sendChannel = actor<PagedList<Value>>(job ?: parentContext) {
+            val dis = this
+            val detachable = object : Detachable {
+                override fun detach() {
+                    dis.cancel()
+                }
+            }
             for (page in channel) {
-                consumer(page)
+                consumer(page, detachable)
             }
         }
 
@@ -73,15 +78,15 @@ suspend fun <Key, Value> ReadyPagedListBuilder<Key, Value>.onPaging(consumer: (P
             lastPage?.dataSource?.addInvalidatedCallback(invalidatedCallback)
         })
 
-        return@coroutineScope Detachable(lastPage, sendChannel)
+        sendChannel.invokeOnClose {
+            lastPage?.dataSource?.removeInvalidatedCallback(invalidatedCallback)
+            lastPage?.detach()
+        }
     }
 
-class Detachable<T>(internal var pagedList: PagedList<T>?, internal val channel: SendChannel<PagedList<T>>) {
 
-    fun detach() {
-        pagedList?.detach()
-        channel.close()
-    }
+interface Detachable {
+    fun detach()
 }
 
 @SuppressLint("RestrictedApi")
