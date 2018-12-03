@@ -33,3 +33,15 @@ launch {
 		}
 }
 ```
+
+```gradle
+allprojects {
+	repositories {
+		...
+		maven { url 'https://jitpack.io' }
+	}
+}
+dependencies {
+	implementation 'com.github.criske:ArchCoroutinesPaging:v1.0.0'
+}
+```
